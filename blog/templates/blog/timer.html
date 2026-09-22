@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Django Async Timer</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            background: #101114;
+            color: white;
+        }
+        .container {
+            width: min(520px, 92vw);
+            padding: 40px;
+            text-align: center;
+            background: #191b20;
+            border-radius: 16px;
+        }
+        #timer {
+            margin: 35px 0;
+            font-size: 110px;
+            font-weight: bold;
+            font-variant-numeric: tabular-nums;
+        }
+        #status {
+            min-height: 24px;
+            margin-bottom: 25px;
+            color: #aaa;
+        }
+        button {
+            padding: 14px 28px;
+            border: 0;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        button:disabled {
+            opacity: .5;
+            cursor: default;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Django Async</h1>
+        <p>Temporizador enviado pelo servidor usando streaming assíncrono.</p>
+        <div id="timer">10</div>
+        <div id="status">Aguardando...</div>
+        <button id="startButton" onclick="startTimer()">Iniciar temporizador</button>
+    </div>
+
+    <script>
+        let eventSource = null;
+
+        function startTimer() {
+            const timer = document.getElementById('timer');
+            const status = document.getElementById('status');
+            const button = document.getElementById('startButton');
+
+            if (eventSource) eventSource.close();
+
+            timer.innerText = '10';
+            status.innerText = 'Conectando ao Django...';
+            button.disabled = true;
+
+            eventSource = new EventSource('/timer/');
+
+            eventSource.onopen = function () {
+                status.innerText = 'Temporizador executando...';
+            };
+
+            eventSource.onmessage = function (event) {
+                timer.innerText = event.data;
+            };
+
+            eventSource.addEventListener('finished', function (event) {
+                timer.innerText = '0';
+                status.innerText = event.data;
+                button.disabled = false;
+                eventSource.close();
+            });
+
+            eventSource.onerror = function () {
+                if (eventSource.readyState === EventSource.CLOSED) return;
+                status.innerText = 'Conexão encerrada.';
+                button.disabled = false;
+                eventSource.close();
+            };
+        }
+    </script>
+</body>
+</html>
